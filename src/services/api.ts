@@ -123,6 +123,7 @@ function mapFullAnalysis(raw: BackendAnalysis): Analysis {
     language: mapLanguage(raw.language),
     imageUrl: raw.imageUrl?.startsWith('/') ? `${API_URL}${raw.imageUrl}` : raw.imageUrl,
     createdAt: raw.createdAt,
+    executiveSummary: raw.executiveSummary,
     result: raw.status === 'completed' ? {
       metadata: {
         provider: raw.detectedProvider || 'unknown',

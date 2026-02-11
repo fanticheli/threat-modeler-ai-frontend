@@ -73,6 +73,7 @@ export interface Analysis {
   imageUrl: string;
   createdAt: string;
   result?: AnalysisResult;
+  executiveSummary?: string;
 }
 
 export interface ProgressEvent {
@@ -155,6 +156,7 @@ export interface BackendAnalysis {
   status: 'processing' | 'completed' | 'failed';
   error?: string;
   detectedProvider?: string;
+  executiveSummary?: string;
   components: BackendComponent[];
   connections: BackendConnection[];
   strideAnalysis: BackendStrideEntry[];

@@ -298,6 +298,25 @@ const AnalysisPage = () => {
           </div>
         </motion.div>
 
+        {/* Executive Summary */}
+        {analysis.executiveSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass-card rounded-xl p-6"
+          >
+            <h3 className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-4">
+              Resumo Executivo
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed text-foreground/90">
+              {analysis.executiveSummary.split('\n\n').map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Main content: Components + STRIDE */}
         <div className="flex gap-6 flex-col lg:flex-row">
           {/* Left: Components */}
