@@ -1,19 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Boxes, Network, ShieldAlert, Download, FileJson, FileText, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Boxes, Network, ShieldAlert, Download, FileJson, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GridBackground } from '@/components/GridBackground';
 import { AnalysisProgress } from '@/components/AnalysisProgress';
 import { RiskScoreGauge } from '@/components/RiskScoreGauge';
 import { SeverityBadge } from '@/components/SeverityBadge';
 import { ComponentCard } from '@/components/ComponentCard';
 import { ThreatCard } from '@/components/ThreatCard';
-import { api } from '@/services/api';
-import { Analysis, AnalysisPhase, StrideCategory, Threat } from '@/types/analysis';
+import { api, mapBackendProgressToFrontend } from '@/services/api';
+import { Analysis, AnalysisPhase, BackendProgressEvent, StrideCategory, Threat } from '@/types/analysis';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,7 @@ const providerLabels: Record<string, string> = {
 
 const AnalysisPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<AnalysisPhase>('validating');
@@ -42,51 +43,85 @@ const AnalysisPage = () => {
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Simulate progress for mock mode
   useEffect(() => {
     if (!id) return;
 
-    const phases: AnalysisPhase[] = ['validating', 'detecting_components', 'analyzing_connections', 'stride_analysis', 'generating_report', 'completed'];
-    const messages = ['Validando qualidade da imagem...', 'Detectando componentes do diagrama...', 'Mapeando conexões entre componentes...', 'Executando análise STRIDE...', 'Gerando relatório final...', 'Análise completa!'];
+    let sse: EventSource | null = null;
 
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      if (currentStep < phases.length) {
-        setPhase(phases[currentStep]);
-        setProgress(Math.min(100, ((currentStep + 1) / phases.length) * 100));
-        setPhaseMessage(messages[currentStep]);
-        currentStep++;
+    // First, fetch the analysis to check if it's already done
+    api.getAnalysis(id).then(data => {
+      if (data.status === 'completed') {
+        // Already complete — show result immediately
+        setAnalysis(data);
+        setPhase('completed');
+        setProgress(100);
+        setLoading(false);
+        return;
       }
-      if (currentStep >= phases.length) {
-        clearInterval(interval);
-        api.getAnalysis(id!).then(data => {
-          setAnalysis(data);
-          setLoading(false);
-        }).catch(() => {
-          toast.error('Erro ao carregar análise');
-          setLoading(false);
-        });
-      }
-    }, 1200);
 
-    // Try SSE first
-    const sse = api.streamProgress(id);
-    if (sse) {
-      clearInterval(interval);
+      if (data.status === 'failed') {
+        setAnalysis(data);
+        setPhase('failed');
+        setPhaseMessage('Análise falhou');
+        setLoading(false);
+        return;
+      }
+
+      // Still processing — open SSE to follow progress
+      sse = api.streamProgress(id);
+
       sse.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        setPhase(data.phase);
-        setProgress(data.progress);
-        setPhaseMessage(data.message);
-        if (data.phase === 'completed') {
-          sse.close();
-          api.getAnalysis(id!).then(d => { setAnalysis(d); setLoading(false); });
+        try {
+          const raw: BackendProgressEvent = JSON.parse(event.data);
+          const mapped = mapBackendProgressToFrontend(raw);
+
+          setPhase(mapped.phase);
+          setProgress(mapped.progress);
+          setPhaseMessage(mapped.message);
+
+          if (raw.status === 'completed') {
+            sse?.close();
+            api.getAnalysis(id).then(result => {
+              setAnalysis(result);
+              setLoading(false);
+            }).catch(() => {
+              toast.error('Erro ao carregar análise');
+              setLoading(false);
+            });
+          }
+
+          if (raw.status === 'failed') {
+            sse?.close();
+            setPhase('failed');
+            setPhaseMessage(raw.progress.message || 'Análise falhou');
+            toast.error('A análise falhou');
+            setLoading(false);
+          }
+        } catch {
+          // ignore parse errors
         }
       };
-      sse.onerror = () => { sse.close(); /* fallback to simulation */ };
-    }
 
-    return () => clearInterval(interval);
+      sse.onerror = () => {
+        sse?.close();
+        api.getAnalysis(id).then(result => {
+          setAnalysis(result);
+          if (result.status === 'completed') {
+            setPhase('completed');
+            setProgress(100);
+          }
+          setLoading(false);
+        }).catch(() => {
+          toast.error('Erro ao conectar com o servidor');
+          setLoading(false);
+        });
+      };
+    }).catch(() => {
+      toast.error('Erro ao carregar análise');
+      setLoading(false);
+    });
+
+    return () => { sse?.close(); };
   }, [id]);
 
   const handleExport = async (format: 'pdf' | 'json' | 'markdown') => {
@@ -137,11 +172,23 @@ const AnalysisPage = () => {
     return 'low';
   };
 
+  const pageHeader = (
+    <div className="relative z-10 flex items-center gap-4 p-4 md:px-6">
+      <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <span className="text-lg font-mono font-bold text-gradient">Threat Modeler AI</span>
+      </button>
+    </div>
+  );
+
   // Loading/Progress phase
   if (loading) {
     return (
       <div className="min-h-screen relative">
         <GridBackground />
+        {pageHeader}
         <div className="relative z-10 py-12">
           <motion.h2
             initial={{ opacity: 0 }}
@@ -163,8 +210,12 @@ const AnalysisPage = () => {
 
   if (!analysis?.result) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Análise não encontrada</p>
+      <div className="min-h-screen relative">
+        <GridBackground />
+        {pageHeader}
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-muted-foreground">Análise não encontrada</p>
+        </div>
       </div>
     );
   }
@@ -174,6 +225,7 @@ const AnalysisPage = () => {
   return (
     <div className="min-h-screen relative">
       <GridBackground />
+      {pageHeader}
 
       <div className="relative z-10 p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
         {/* Header / Summary */}
@@ -352,6 +404,7 @@ const AnalysisPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] glass-card border-border p-2">
+            <DialogTitle className="sr-only">Diagrama de arquitetura original</DialogTitle>
             <div className="overflow-auto max-h-[85vh]">
               <img
                 src={analysis.imageUrl}

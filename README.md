@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# Threat Modeler AI - Frontend
 
-## Project info
+Interface web para o Threat Modeler AI, uma ferramenta de modelagem de ameaças automatizada usando metodologia STRIDE.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- **Vite** - Build Tool
+- **React 18** - UI Library
+- **TypeScript** - Type Safety
+- **TailwindCSS** - Styling
+- **shadcn/ui** - Component Library
+- **React Dropzone** - File Upload
+- **Framer Motion** - Animations
+- **React Query** - Data Fetching
+- **Recharts** - Charts
 
-There are several ways of editing your application.
+## Funcionalidades
 
-**Use Lovable**
+- Upload de diagramas de arquitetura
+- Validação de qualidade da imagem
+- Seleção de idioma (Português/Inglês)
+- Acompanhamento de progresso em tempo real (SSE)
+- Visualização de componentes e ameaças (STRIDE)
+- Score de risco geral com gauge visual
+- Exportação de relatórios (PDF, JSON, Markdown)
+- Histórico de análises
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Pré-requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18+
+- Backend rodando (threat-modeler-ai-backend)
 
-**Use your preferred IDE**
+## Instalação
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# Clone o repositório
+git clone https://github.com/fanticheli/threat-modeler-ai-frontend.git
+cd threat-modeler-ai-frontend
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Instale as dependências
+npm install
 
-Follow these steps:
+# Configure as variáveis de ambiente
+cp .env.example .env.local
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Inicie em desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Variáveis de Ambiente
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+# Backend API URL
+# Local: http://localhost:3001
+# Prod: https://threat-modeler-api.onrender.com
+VITE_API_URL=http://localhost:3001
+```
 
-**Use GitHub Codespaces**
+> Sem `VITE_API_URL` configurado, a aplicação roda com dados mock.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Scripts
 
-## What technologies are used for this project?
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Inicia em modo desenvolvimento (porta 8080) |
+| `npm run build` | Build de produção |
+| `npm run preview` | Preview do build de produção |
+| `npm run lint` | Executa linter |
+| `npm run test` | Executa testes |
+| `npm run test:watch` | Executa testes em modo watch |
 
-This project is built with:
+## Estrutura
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/           # Componentes React
+│   ├── ui/               # shadcn/ui components
+│   ├── AnalysisProgress  # Progresso da análise (SSE)
+│   ├── ComponentCard     # Card de componente detectado
+│   ├── RiskScoreGauge    # Gauge de score de risco
+│   ├── ThreatCard        # Card de ameaça STRIDE
+│   └── UploadZone        # Zona de upload de imagem
+├── pages/                # Páginas da aplicação
+│   ├── Index             # Home - Upload
+│   ├── Analysis          # Resultado da análise
+│   ├── History           # Histórico de análises
+│   └── NotFound          # 404
+├── services/             # API client
+├── types/                # TypeScript types
+├── hooks/                # Custom hooks
+└── lib/                  # Utilitários
+```
 
-## How can I deploy this project?
+## Repositórios Relacionados
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- [threat-modeler-ai-backend](https://github.com/fanticheli/threat-modeler-ai-backend) - API Backend
 
-## Can I connect a custom domain to my Lovable project?
+## Licença
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT

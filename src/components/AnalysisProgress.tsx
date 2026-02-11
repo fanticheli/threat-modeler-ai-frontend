@@ -1,13 +1,12 @@
 import { AnalysisPhase } from '@/types/analysis';
 import { motion } from 'framer-motion';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, XCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 const phases: { key: AnalysisPhase; label: string }[] = [
   { key: 'validating', label: 'Validando imagem' },
   { key: 'detecting_components', label: 'Detectando componentes' },
-  { key: 'analyzing_connections', label: 'Mapeando conexões' },
   { key: 'stride_analysis', label: 'Análise STRIDE' },
   { key: 'generating_report', label: 'Gerando relatório' },
   { key: 'completed', label: 'Análise completa' },
@@ -21,7 +20,8 @@ interface AnalysisProgressProps {
 }
 
 export const AnalysisProgress = ({ currentPhase, progress, message, imageUrl }: AnalysisProgressProps) => {
-  const currentIndex = phases.findIndex(p => p.key === currentPhase);
+  const isFailed = currentPhase === 'failed';
+  const currentIndex = isFailed ? phases.length : phases.findIndex(p => p.key === currentPhase);
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -29,9 +29,11 @@ export const AnalysisProgress = ({ currentPhase, progress, message, imageUrl }: 
       <div className="mb-8">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted-foreground">Progresso geral</span>
-          <span className="font-mono text-primary">{Math.round(progress)}%</span>
+          <span className={cn('font-mono', isFailed ? 'text-destructive' : 'text-primary')}>
+            {isFailed ? 'Falhou' : `${Math.round(progress)}%`}
+          </span>
         </div>
-        <Progress value={progress} className="h-2 [&>div]:bg-primary" />
+        <Progress value={progress} className={cn('h-2', isFailed ? '[&>div]:bg-destructive' : '[&>div]:bg-primary')} />
       </div>
 
       <div className="flex gap-8">
@@ -73,6 +75,19 @@ export const AnalysisProgress = ({ currentPhase, progress, message, imageUrl }: 
               </motion.div>
             );
           })}
+
+          {isFailed && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3 p-3 rounded-lg glass-card border border-destructive/30"
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-destructive/20 text-destructive flex-shrink-0">
+                <XCircle className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-medium text-destructive">Análise falhou</span>
+            </motion.div>
+          )}
 
           {message && (
             <motion.p

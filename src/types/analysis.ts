@@ -11,10 +11,10 @@ export type StrideCategory =
 export type AnalysisPhase =
   | 'validating'
   | 'detecting_components'
-  | 'analyzing_connections'
   | 'stride_analysis'
   | 'generating_report'
-  | 'completed';
+  | 'completed'
+  | 'failed';
 
 export interface Component {
   id: string;
@@ -89,4 +89,114 @@ export interface ImageValidation {
     sharpness: number;
     contrast: number;
   };
+}
+
+// ── Backend raw types (used internally by adapters in api.ts) ──
+
+export interface BackendComponent {
+  id: string;
+  name: string;
+  type: string;
+  provider?: string;
+  description: string;
+  availabilityZone?: string;
+  existingSecurityControls?: string[];
+  isAutoScaling?: boolean;
+  replicaOf?: string;
+}
+
+export interface BackendConnection {
+  from: string;
+  to: string;
+  protocol: string;
+  port?: string;
+  description: string;
+  encrypted?: boolean;
+}
+
+export interface BackendThreat {
+  category: string;
+  description: string;
+  severity: string;
+  severityJustification?: string;
+  existingMitigation?: string;
+  affectedData?: string;
+  countermeasures: string[];
+}
+
+export interface BackendStrideEntry {
+  componentId: string;
+  threats: BackendThreat[];
+}
+
+export interface BackendSummary {
+  totalComponents: number;
+  totalThreats: number;
+  criticalThreats: number;
+  highThreats: number;
+  mediumThreats: number;
+  lowThreats: number;
+}
+
+export interface BackendProgress {
+  step: 'waiting' | 'detecting_components' | 'analyzing_stride' | 'generating_report' | 'completed' | 'failed';
+  message: string;
+  percentage: number;
+  currentComponent?: number;
+  totalComponents?: number;
+  updatedAt?: string;
+}
+
+export interface BackendAnalysis {
+  _id: string;
+  imageUrl: string;
+  imageName: string;
+  language: 'pt-BR' | 'en-US';
+  status: 'processing' | 'completed' | 'failed';
+  error?: string;
+  detectedProvider?: string;
+  components: BackendComponent[];
+  connections: BackendConnection[];
+  strideAnalysis: BackendStrideEntry[];
+  summary: BackendSummary;
+  progress: BackendProgress;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendAnalysisListItem {
+  _id: string;
+  imageName: string;
+  imageUrl?: string;
+  detectedProvider?: string;
+  status: 'processing' | 'completed' | 'failed';
+  summary: BackendSummary;
+  progress: BackendProgress;
+  createdAt: string;
+}
+
+export interface BackendUploadResponse {
+  id: string;
+  imageUrl: string;
+  imageName: string;
+  status: string;
+  quality: BackendImageQuality;
+}
+
+export interface BackendImageQuality {
+  isValid: boolean;
+  score: number;
+  details: {
+    resolution: { width: number; height: number; isValid: boolean; message: string };
+    fileSize: { bytes: number; isValid: boolean; message: string };
+    sharpness: { value: number; isValid: boolean; message: string };
+    contrast: { value: number; isValid: boolean; message: string };
+  };
+  recommendations: string[];
+}
+
+export interface BackendProgressEvent {
+  id: string;
+  status: 'processing' | 'completed' | 'failed';
+  progress: BackendProgress;
 }
